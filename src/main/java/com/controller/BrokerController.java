@@ -83,10 +83,7 @@ public class BrokerController {
     }
 
 
-
-    }
-    // send to Publishers
-    // consistency and replica
+    // consistency and replica by hitting configIp
 
 
 }
