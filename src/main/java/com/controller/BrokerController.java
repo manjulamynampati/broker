@@ -200,4 +200,38 @@ public class BrokerController {
     }
 
 
+    @PostMapping(value = "/unsubscribe")
+    public ResponseEntity<HttpStatus> unsubscribe(@RequestBody SubscriberModel subscriberModel) {
+
+        int subscriberId = subscriberModel.getSubscriberId();
+        List<String> selectedPublishers = subscriberModel.getPublishers();
+
+        lock.lock();
+        try {
+            for (String publisherId : selectedPublishers) {
+                if (publisherSubscriberMap.containsKey(publisherId)) {
+                    List<SubscriberModel> subscribers = publisherSubscriberMap.get(publisherId);
+                    // Remove the subscriber with the specified ID
+                    subscribers.removeIf(subscriber -> subscriber.getSubscriberId() == subscriberId);
+                }
+            }
+
+            boolean success = sendMapToPeerBrokers(publisherSubscriberMap); // Consistency & Replication
+
+            if (success) {
+                System.out.println("Subscriber with ID " + subscriberId + " unsubscribed from publishers: " + selectedPublishers);
+                return ResponseEntity.ok(HttpStatus.OK);
+            } else {
+                System.out.println("Subscriber with ID " + subscriberId + " could not be unsubscribed from publishers");
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        } finally {
+            lock.unlock();
+        }
+    }
+
 }
