@@ -22,12 +22,12 @@ public class BrokerServiceImpl implements BrokerService {
         boolean flag = false;
 
         for (SubscriberModel node : subscribers) {
-            String url = "http://" + node.getUrl() + ":" + "/notify";
+            String url = "http://" + node.getUrl() + ":" + node.getPort() + "/notify";
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<EventData> requestEntity = new HttpEntity<>(event,headers);
             System.out.println("Sending eventId " + event.getEventId() + " to subscriber " +
-                    node.getSubscriberId() + " at url " + url);
+                    node.getSubscriberId() + " at url " + url +" to port " +node.getPort());
             HttpStatus statusCode;
             try {
                 ResponseEntity<HttpStatus> responseEntity = restTemplate.exchange(url,

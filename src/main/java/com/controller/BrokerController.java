@@ -38,12 +38,24 @@ public class BrokerController {
     @Value("${ec2Port}")
     private String ec2Port;
 
-    private String configUrl = "http://" + configIp + ":" + ec2Port;
+
 
     @Autowired
     private BrokerService brokerService;
     // ended by @Manjula Mynampati
 
+
+
+    // Constructor
+    public BrokerController() {
+        this.publisherSubscriberMap = new HashMap<>();
+        this.publisherStatusMap = new HashMap<>();
+
+        // Sample data for publisherStatusMap
+        publisherStatusMap.put("Handbags", "active"); // Status: Connected
+        publisherStatusMap.put("Watches", "inactive"); // Status: Disconnected
+        publisherStatusMap.put("Jewellery", "active"); // Status: Connected
+    }
 
     // This method is coming from subscriber to fetch list of active publishers @Manjula Mynampati
     @GetMapping(value = "/getPublishers")
@@ -58,8 +70,10 @@ public class BrokerController {
                 if ("active".equals(status)) {
                     activePublishers.add(publisherId);
                 }
+
             }
 
+        System.out.print("sending active publishers to subscriber:::::::" +activePublishers);
 
         return ResponseEntity.ok(activePublishers);
     }
@@ -81,9 +95,12 @@ public class BrokerController {
                 subscribers.add(subscriberModel);
             }
 
-            boolean success = sendMapToPeerBrokers(publisherSubscriberMap); //consistency & Replication
+            //boolean success = sendMapToPeerBrokers(publisherSubscriberMap); //consistency & Replication
+
+            boolean success = true;  // to be removed
 
             if(success){
+
                 System.out.println("Subscriber with ID " + subscriberId + " subscribed to publishers: " + selectedPublishers);
                 return ResponseEntity.ok(HttpStatus.OK);
             }else{
@@ -101,6 +118,8 @@ public class BrokerController {
         }
 
     }
+
+
 
     //this method should be called inside receiveEventDataFromPublisherAndSend
     public boolean notifySubscriber (List<SubscriberModel> subscribers, EventData event) {
@@ -131,7 +150,7 @@ public class BrokerController {
                     ResponseEntity<HttpStatus> responseEntity = restTemplate.exchange(peerurl,
                             HttpMethod.POST,requestEntity,HttpStatus.class);
 
-                    status = responseEntity.getBody();
+                    status = responseEntity.getStatusCode();
                 } catch (Exception e) {
                     System.err.println("Exception while sending publisherSubscriberMap to Peer Broker at " + peerurl + ": " + e.getMessage());
                     throw e;
@@ -151,15 +170,19 @@ public class BrokerController {
 
     // getting peer brokers ip from config server method to be updated @ManjulaMynampati
     public List<String> getPeerIpsFromConfigServer() {
+        String configUrl  = "http://" + configIp + ":" + ec2Port;
         List<String> peerBrokersIpList = new ArrayList<>();
 
         try {
 
             String appendedUrl = configUrl + "/get-peerBrokers-IPList";
             System.out.println("Appended URL in : " + appendedUrl);
-            ResponseEntity<List<String>> responseEntity = restTemplate.exchange(
-                    configUrl, HttpMethod.GET, null,
-                    new ParameterizedTypeReference<List<String>>() {});
+            ParameterizedTypeReference<List<String>> responseType = new ParameterizedTypeReference<List<String>>() {};
+
+            ResponseEntity<List<String>> responseEntity  = restTemplate.exchange(
+                    appendedUrl, HttpMethod.GET, null, responseType);
+
+
 
             if (responseEntity.getStatusCode().is2xxSuccessful()) {
 
@@ -190,7 +213,9 @@ public class BrokerController {
             this.publisherSubscriberMap.clear();
             this.publisherSubscriberMap.putAll(receivedMap);
 
-            return ResponseEntity.ok("Received publisherSubscriberMap from lead broker. Updated successfully");
+            System.out.print("Received publisherSubscriberMap from lead broker. Updated successfully");
+
+            return ResponseEntity.ok("");
 
         } catch (Exception e) {
 
@@ -233,5 +258,7 @@ public class BrokerController {
             lock.unlock();
         }
     }
+
+
 
 }

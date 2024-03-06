@@ -10,6 +10,7 @@ public class Broker {
     public static void main(String[] args) {
         try {
             SpringApplication.run(Broker.class, args);
+            System.out.print("Broker is running..");
         } catch (Exception e) {
             e.printStackTrace();
         }
